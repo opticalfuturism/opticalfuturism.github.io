@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optical Art Generator - Optical Futurism</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        const Download = ({ size }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+        );
+
+        const OpticalArtGenerator = () => {
+            const canvasRef = useRef(null);
+            const [circles, setCircles] = useState(250);
+            const [spacing, setSpacing] = useState(8);
+            const [lineWidth, setLineWidth] = useState(0.9);
+            const [resolution, setResolution] = useState(3240);
+            const [colors, setColors] = useState(['#6B21A8', '#FACC15', '#22C55E', '#3B82F6']);
+            const [colorWidths, setColorWidths] = useState([0.9, 0.9, 0.9, 0.9]);
+            const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+            const [widthModulations, setWidthModulations] = useState([]);
+            const [isDrawing, setIsDrawing] = useState(false);
+            const [centerDistortion, setCenterDistortion] = useState(0);
+            const [edgeDistortion, setEdgeDistortion] = useState(0);
+
+            const width = resolution;
+            const height = resolution;
+
+            const draw = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = colors[0];
+                ctx.fillRect(0, 0, width, height);
+
+                const centerX = width / 2;
+                const centerY = height / 2;
+
+                for (let i = 0; i < circles; i++) {
+                    const baseRadius = (i + 1) * spacing;
+                    const colorIndex = i % colors.length;
+                    ctx.strokeStyle = colors[colorIndex];
+                    
+                    let baseWidth = spacing * colorWidths[colorIndex];
+                    
+                    widthModulations.forEach(mod => {
+                        const radiusDiff = Math.abs(baseRadius - mod.radius);
+                        if (radiusDiff < mod.falloff) {
+                            const influence = 1 - (radiusDiff / mod.falloff);
+                            baseWidth *= (1 + mod.multiplier * influence);
+                        }
+                    });
+
+                    ctx.beginPath();
+                    
+                    const segments = 360;
+                    for (let angle = 0; angle <= segments; angle++) {
+                        const theta = (angle / segments) * Math.PI * 2;
+                        let radius = baseRadius;
+                        
+                        const x = centerX + Math.cos(theta) * radius;
+                        const y = centerY + Math.sin(theta) * radius;
+                        
+                        const maxRadius = Math.min(width, height) / 2;
+                        const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                        const normalizedDistance = Math.min(distanceFromCenter / maxRadius, 1);
+                        
+                        let widthMultiplier = 1;
+                        
+                        const centerInfluence = 1 - normalizedDistance;
+                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        
+                        const edgeInfluence = normalizedDistance;
+                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        
+                        ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
+
+                        if (angle === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            };
+
+            useEffect(() => {
+                draw();
+            }, [circles, spacing, colors, colorWidths, resolution, widthModulations, centerDistortion, edgeDistortion]);
+
+            const handleCanvasMouseDown = (e) => {
+                setIsDrawing(true);
+                handleCanvasMouseMove(e);
+            };
+
+            const handleCanvasMouseMove = (e) => {
+                if (!isDrawing) return;
+
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = width / rect.width;
+                const scaleY = height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                
+                setWidthModulations(prev => {
+                    const existing = prev.find(w => Math.abs(w.radius - distanceFromCenter) < 100);
+                    
+                    if (existing) {
+                        return prev.map(w => 
+                            w === existing 
+                                ? { ...w, radius: distanceFromCenter }
+                                : w
+                        );
+                    }
+                    
+                    return [...prev, { radius: distanceFromCenter, multiplier: 1, falloff: 100 }];
+                });
+            };
+
+            const handleCanvasMouseUp = () => {
+                setIsDrawing(false);
+            };
+
+            const exportPNG = async () => {
+                const canvas = canvasRef.current;
+                
+                try {
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.download = `optical-art-${Date.now()}.png`;
+                            link.href = url;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            setTimeout(() => URL.revokeObjectURL(url), 100);
+                        }
+                    }, 'image/png', 1.0);
+                } catch (error) {
+                    console.error('Export failed:', error);
+                    alert('Export failed. Try reducing the resolution.');
+                }
+            };
+
+            const clearWidthMods = () => {
+                setWidthModulations([]);
+            };
+
+            const resetAll = () => {
+                setCircles(250);
+                setSpacing(8);
+                setLineWidth(0.9);
+                setResolution(3240);
+                setColors(['#6B21A8', '#FACC15', '#22C55E', '#3B82F6']);
+                setColorWidths([0.9, 0.9, 0.9, 0.9]);
+                setWidthModulations([]);
+                setCenterDistortion(0);
+                setEdgeDistortion(0);
+            };
+
+            const addColor = () => {
+                const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                setColors([...colors, randomColor]);
+            };
+
+            return (
+                <div className="w-full min-h-screen bg-gray-900 text-white p-4">
+                    <div className="max-w-6xl mx-auto">
+                        <h1 className="text-3xl font-bold mb-6 text-center">Optical Art Generator</h1>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2">
+                                <div className="bg-gray-800 p-4 rounded-lg">
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={width}
+                                        height={height}
+                                        className="w-full border-2 border-gray-700 rounded cursor-pointer"
+                                        onMouseDown={handleCanvasMouseDown}
+                                        onMouseMove={handleCanvasMouseMove}
+                                        onMouseUp={handleCanvasMouseUp}
+                                        onMouseLeave={handleCanvasMouseUp}
+                                    />
+                                    <div className="text-sm text-gray-400 mt-2">
+                                        <span>Click to add line width modulation points</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-gray-800 p-4 rounded-lg space-y-3">
+                                    <h3 className="font-semibold mb-2">Export</h3>
+                                    
+                                    <div>
+                                        <label className="text-sm text-gray-400">Resolution: {resolution}x{resolution}</label>
+                                        <select
+                                            value={resolution}
+                                            onChange={(e) => setResolution(Number(e.target.value))}
+                                            className="w-full bg-gray-700 text-white px-3 py-2 rounded mt-1"
+                                        >
+                                            <option value={1080}>1080x1080 (Instagram)</option>
+                                            <option value={2160}>2160x2160 (2K)</option>
+                                            <option value={3240}>3240x3240 (3K)</option>
+                                            <option value={4320}>4320x4320 (4K)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={exportPNG}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center justify-center gap-2"
+                                    >
+                                        <Download size={18} />
+                                        Export PNG
+                                    </button>
+                                </div>
+
+                                <div className="bg-gray-800 p-4 rounded-lg space-y-3">
+                                    <h3 className="font-semibold mb-2">Circle Settings</h3>
+                                    
+                                    <div>
+                                        <label className="text-sm text-gray-400">Number of Circles: {circles}</label>
+                                        <input
+                                            type="range"
+                                            min="10"
+                                            max="500"
+                                            value={circles}
+                                            onChange={(e) => setCircles(Number(e.target.value))}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm text-gray-400">Spacing: {spacing}</label>
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="30"
+                                            step="0.5"
+                                            value={spacing}
+                                            onChange={(e) => setSpacing(Number(e.target.value))}
+                                            className="w-full"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm text-gray-400">Line Width: {lineWidth.toFixed(2)}</label>
+                                        <input
+                                            type="range"
+                                            min="0.1"
+                                            max="2"
+                                            step="0.05"
+                                            value={lineWidth}
+                                            onChange={(e) => {
+                                                const newWidth = Number(e.target.value);
+                                                setLineWidth(newWidth);
+                                                setColorWidths(colors.map(() => newWidth));
+                                            }}
+                                            className="w-full"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Adjusts all colors at once</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-800 p-4 rounded-lg space-y-3">
+                                    <h3 className="font-semibold mb-2">Radial Line Width</h3>
+                                    
+                                    <div>
+                                        <label className="text-sm text-gray-400">Center → Out: {centerDistortion}</label>
+                                        <input
+                                            type="range"
+                                            min="-200"
+                                            max="200"
+                                            value={centerDistortion}
+                                            onChange={(e) => setCenterDistortion(Number(e.target.value))}
+                                            className="w-full"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Adjusts line width from center outward</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="text-sm text-gray-400">Edge → In: {edgeDistortion}</label>
+                                        <input
+                                            type="range"
+                                            min="-200"
+                                            max="200"
+                                            value={edgeDistortion}
+                                            onChange={(e) => setEdgeDistortion(Number(e.target.value))}
+                                            className="w-full"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Adjusts line width from edge inward</p>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setCenterDistortion(0);
+                                            setEdgeDistortion(0);
+                                        }}
+                                        className="w-full bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm"
+                                    >
+                                        Reset Radial Width
+                                    </button>
+                                </div>
+
+                                <div className="bg-gray-800 p-4 rounded-lg space-y-3">
+                                    <h3 className="font-semibold mb-2">Colors</h3>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        {colors.map((color, i) => (
+                                            <div key={i} className="relative">
+                                                <button
+                                                    onClick={() => setSelectedColorIndex(i)}
+                                                    className={`w-12 h-12 rounded cursor-pointer transition-all ${
+                                                        selectedColorIndex === i ? 'ring-4 ring-white scale-110' : 'ring-2 ring-gray-600'
+                                                    }`}
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                                {selectedColorIndex === i && (
+                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center text-xs text-black">
+                                                        ✓
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    {selectedColorIndex !== null && (
+                                        <div className="bg-gray-700 p-3 rounded">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium">Color {selectedColorIndex + 1}</span>
+                                                {colors.length > 2 && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setColors(colors.filter((_, idx) => idx !== selectedColorIndex));
+                                                            setColorWidths(colorWidths.filter((_, idx) => idx !== selectedColorIndex));
+                                                            setSelectedColorIndex(Math.max(0, selectedColorIndex - 1));
+                                                        }}
+                                                        className="text-red-400 hover:text-red-300 text-sm px-2 py-1 bg-red-900/30 rounded"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="mb-3">
+                                                <label className="text-xs text-gray-400 mb-1 block">Color</label>
+                                                <input
+                                                    type="color"
+                                                    value={colors[selectedColorIndex]}
+                                                    onChange={(e) => {
+                                                        const newColors = [...colors];
+                                                        newColors[selectedColorIndex] = e.target.value;
+                                                        setColors(newColors);
+                                                    }}
+                                                    className="w-full h-10 rounded cursor-pointer"
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="text-xs text-gray-400">Line Width: {colorWidths[selectedColorIndex]?.toFixed(2) || 0.9}</label>
+                                                <input
+                                                    type="range"
+                                                    min="0.1"
+                                                    max="10"
+                                                    step="0.1"
+                                                    value={colorWidths[selectedColorIndex] || 0.9}
+                                                    onChange={(e) => {
+                                                        const newWidths = [...colorWidths];
+                                                        newWidths[selectedColorIndex] = Number(e.target.value);
+                                                        setColorWidths(newWidths);
+                                                    }}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <button
+                                        onClick={() => {
+                                            addColor();
+                                            setColorWidths([...colorWidths, 0.9]);
+                                            setSelectedColorIndex(colors.length);
+                                        }}
+                                        className="w-full bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm"
+                                    >
+                                        + Add Color
+                                    </button>
+                                </div>
+
+                                <div className="bg-gray-800 p-4 rounded-lg space-y-3">
+                                    <h3 className="font-semibold mb-2">Effects</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-400">Width Mods: {widthModulations.length}</span>
+                                            <button
+                                                onClick={clearWidthMods}
+                                                className="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-xs"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={resetAll}
+                                        className="w-full bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded"
+                                    >
+                                        Reset Everything
+                                    </button>
+                                </div>
+                                
+                                {widthModulations.length > 0 && (
+                                    <div className="bg-gray-800 p-4 rounded-lg space-y-3">
+                                        <h3 className="font-semibold mb-2">Width Modulation Points</h3>
+                                        {widthModulations.map((mod, idx) => (
+                                            <div key={idx} className="bg-gray-700 p-3 rounded space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm">Point {idx + 1}</span>
+                                                    <button
+                                                        onClick={() => setWidthModulations(widthModulations.filter((_, i) => i !== idx))}
+                                                        className="text-red-400 hover:text-red-300 text-xs"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Multiplier: {mod.multiplier.toFixed(2)}</label>
+                                                    <input
+                                                        type="range"
+                                                        min="-2"
+                                                        max="5"
+                                                        step="0.1"
+                                                        value={mod.multiplier}
+                                                        onChange={(e) => {
+                                                            const newMods = [...widthModulations];
+                                                            newMods[idx] = { ...mod, multiplier: Number(e.target.value) };
+                                                            setWidthModulations(newMods);
+                                                        }}
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-400">Falloff: {mod.falloff.toFixed(0)}</label>
+                                                    <input
+                                                        type="range"
+                                                        min="20"
+                                                        max="500"
+                                                        step="10"
+                                                        value={mod.falloff}
+                                                        onChange={(e) => {
+                                                            const newMods = [...widthModulations];
+                                                            newMods[idx] = { ...mod, falloff: Number(e.target.value) };
+                                                            setWidthModulations(newMods);
+                                                        }}
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<OpticalArtGenerator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
