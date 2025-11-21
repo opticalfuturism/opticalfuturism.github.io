@@ -35,6 +35,20 @@
             const [centerDistortion, setCenterDistortion] = useState(0);
             const [edgeDistortion, setEdgeDistortion] = useState(0);
             
+            // Animation states
+            const [isAnimating, setIsAnimating] = useState(false);
+            const [rotationSpeed, setRotationSpeed] = useState(1);
+            const [pulseSpeed, setPulseSpeed] = useState(1);
+            const [currentRotation, setCurrentRotation] = useState(0);
+            const [pulsePhase, setPulsePhase] = useState(0);
+            const animationFrameRef = useRef(null);
+            
+            // Video recording states
+            const [isRecording, setIsRecording] = useState(false);
+            const [recordingTime, setRecordingTime] = useState(0);
+            const mediaRecorderRef = useRef(null);
+            const recordedChunksRef = useRef([]);
+            
             const [shapes, setShapes] = useState({
                 circles: true,
                 horizontalLines: false,
@@ -52,11 +66,24 @@
                 if (!canvas) return;
                 
                 const ctx = canvas.getContext('2d');
+                
+                // Save context for rotation
+                ctx.save();
+                
                 ctx.fillStyle = colors[0];
                 ctx.fillRect(0, 0, width, height);
 
                 const centerX = width / 2;
                 const centerY = height / 2;
+                
+                // Apply rotation if animating
+                ctx.translate(centerX, centerY);
+                ctx.rotate((currentRotation * Math.PI) / 180);
+                ctx.translate(-centerX, -centerY);
+                
+                // Calculate animated pulse distortion
+                const animatedCenterDist = centerDistortion + Math.sin(pulsePhase) * 50;
+                const animatedEdgeDist = edgeDistortion + Math.cos(pulsePhase) * 50;
 
                 for (let i = 0; i < circles; i++) {
                     const baseRadius = (i + 1) * spacing;
@@ -89,9 +116,9 @@
                             
                             let widthMultiplier = 1;
                             const centerInfluence = 1 - normalizedDistance;
-                            widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                            widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                             const edgeInfluence = normalizedDistance;
-                            widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                            widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                             
                             ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
 
@@ -116,9 +143,9 @@
                         
                         let widthMultiplier = 1;
                         const centerInfluence = 1 - normalizedDistance;
-                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                         const edgeInfluence = normalizedDistance;
-                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                         
                         ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
@@ -241,11 +268,46 @@
                         ctx.stroke();
                     }
                 }
+                
+                ctx.restore();
             };
 
             useEffect(() => {
                 draw();
-            }, [circles, spacing, colors, colorWidths, resolution, widthModulations, centerDistortion, edgeDistortion, shapes]);
+            }, [circles, spacing, colors, colorWidths, resolution, widthModulations, centerDistortion, edgeDistortion, shapes, currentRotation, pulsePhase, isAnimating]);
+            
+            // Animation loop
+            useEffect(() => {
+                if (isAnimating) {
+                    const animate = () => {
+                        setCurrentRotation(prev => (prev + rotationSpeed) % 360);
+                        setPulsePhase(prev => prev + (pulseSpeed * 0.05));
+                        animationFrameRef.current = requestAnimationFrame(animate);
+                    };
+                    animate();
+                } else {
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                }
+                
+                return () => {
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                };
+            }, [isAnimating, rotationSpeed, pulseSpeed]);
+            
+            // Recording timer
+            useEffect(() => {
+                let interval;
+                if (isRecording) {
+                    interval = setInterval(() => {
+                        setRecordingTime(prev => prev + 1);
+                    }, 1000);
+                }
+                return () => clearInterval(interval);
+            }, [isRecording]);
 
             const handleCanvasMouseDown = (e) => {
                 setIsDrawing(true);
@@ -306,6 +368,56 @@
                     alert('Export failed. Try reducing the resolution.');
                 }
             };
+            
+            const startRecording = () => {
+                const canvas = canvasRef.current;
+                const stream = canvas.captureStream(30);
+                
+                let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
+                
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 8000000 };
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
+                }
+                
+                const mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunksRef.current = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunksRef.current.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `optical-art-animation-${Date.now()}.webm`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                mediaRecorder.start(100);
+                mediaRecorderRef.current = mediaRecorder;
+                setIsRecording(true);
+                setRecordingTime(0);
+                
+                // Auto-start animation when recording
+                if (!isAnimating) {
+                    setIsAnimating(true);
+                }
+            };
+            
+            const stopRecording = () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    mediaRecorderRef.current.stop();
+                    setIsRecording(false);
+                }
+            };
 
             const clearWidthMods = () => {
                 setWidthModulations([]);
@@ -329,6 +441,11 @@
                     triangles: false,
                     squares: false
                 });
+                setIsAnimating(false);
+                setCurrentRotation(0);
+                setPulsePhase(0);
+                setRotationSpeed(1);
+                setPulseSpeed(1);
             };
 
             const addColor = () => {
