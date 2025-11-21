@@ -109,7 +109,18 @@
                         const y = centerY - baseRadius;
                         const y2 = centerY + baseRadius;
                         
-                        ctx.lineWidth = baseWidth;
+                        // Calculate distance from center for width modulation
+                        const distFromCenter = baseRadius;
+                        const maxRadius = Math.min(width, height) / 2;
+                        const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
+                        
+                        let widthMultiplier = 1;
+                        const centerInfluence = 1 - normalizedDistance;
+                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        const edgeInfluence = normalizedDistance;
+                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        
+                        ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
                         ctx.moveTo(0, y);
                         ctx.lineTo(width, y);
@@ -127,7 +138,18 @@
                         const x = centerX - baseRadius;
                         const x2 = centerX + baseRadius;
                         
-                        ctx.lineWidth = baseWidth;
+                        // Calculate distance from center for width modulation
+                        const distFromCenter = baseRadius;
+                        const maxRadius = Math.min(width, height) / 2;
+                        const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
+                        
+                        let widthMultiplier = 1;
+                        const centerInfluence = 1 - normalizedDistance;
+                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        const edgeInfluence = normalizedDistance;
+                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        
+                        ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
                         ctx.moveTo(x, 0);
                         ctx.lineTo(x, height);
@@ -142,7 +164,18 @@
                     }
 
                     if (shapes.diagonalLines) {
-                        ctx.lineWidth = baseWidth;
+                        // Calculate distance from center for width modulation
+                        const distFromCenter = baseRadius;
+                        const maxRadius = Math.min(width, height) / 2;
+                        const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
+                        
+                        let widthMultiplier = 1;
+                        const centerInfluence = 1 - normalizedDistance;
+                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        const edgeInfluence = normalizedDistance;
+                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        
+                        ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         
                         ctx.beginPath();
                         ctx.moveTo(centerX - baseRadius, centerY);
@@ -167,7 +200,19 @@
 
                     if (shapes.squares) {
                         const size = baseRadius * 2;
-                        ctx.lineWidth = baseWidth;
+                        
+                        // Calculate distance from center for width modulation
+                        const distFromCenter = baseRadius;
+                        const maxRadius = Math.min(width, height) / 2;
+                        const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
+                        
+                        let widthMultiplier = 1;
+                        const centerInfluence = 1 - normalizedDistance;
+                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        const edgeInfluence = normalizedDistance;
+                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        
+                        ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
                         ctx.rect(centerX - baseRadius, centerY - baseRadius, size, size);
                         ctx.stroke();
@@ -175,7 +220,19 @@
 
                     if (shapes.triangles) {
                         const triHeight = baseRadius * Math.sqrt(3);
-                        ctx.lineWidth = baseWidth;
+                        
+                        // Calculate distance from center for width modulation
+                        const distFromCenter = baseRadius;
+                        const maxRadius = Math.min(width, height) / 2;
+                        const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
+                        
+                        let widthMultiplier = 1;
+                        const centerInfluence = 1 - normalizedDistance;
+                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        const edgeInfluence = normalizedDistance;
+                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        
+                        ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
                         ctx.moveTo(centerX, centerY - (triHeight * 2/3));
                         ctx.lineTo(centerX - baseRadius, centerY + (triHeight * 1/3));
