@@ -30,12 +30,12 @@
 
         const OpticalArtGenerator = () => {
             const canvasRef = useRef(null);
-            const [circles, setCircles] = useState(250);
-            const [spacing, setSpacing] = useState(8);
-            const [lineWidth, setLineWidth] = useState(0.9);
+            const [circles, setCircles] = useState(190);
+            const [spacing, setSpacing] = useState(25);
+            const [lineWidth, setLineWidth] = useState(0.70);
             const [resolution, setResolution] = useState(3240);
             const [colors, setColors] = useState(['#6B21A8', '#FACC15', '#22C55E', '#3B82F6']);
-            const [colorWidths, setColorWidths] = useState([0.9, 0.9, 0.9, 0.9]);
+            const [colorWidths, setColorWidths] = useState([0.70, 0.70, 0.70, 0.70]);
             const [selectedColorIndex, setSelectedColorIndex] = useState(0);
             const [widthModulations, setWidthModulations] = useState([]);
             const [isDrawing, setIsDrawing] = useState(false);
@@ -176,12 +176,12 @@
             };
 
             const resetAll = () => {
-                setCircles(250);
-                setSpacing(8);
-                setLineWidth(0.9);
+                setCircles(190);
+                setSpacing(25);
+                setLineWidth(0.70);
                 setResolution(3240);
                 setColors(['#6B21A8', '#FACC15', '#22C55E', '#3B82F6']);
-                setColorWidths([0.9, 0.9, 0.9, 0.9]);
+                setColorWidths([0.70, 0.70, 0.70, 0.70]);
                 setWidthModulations([]);
                 setCenterDistortion(0);
                 setEdgeDistortion(0);
@@ -405,7 +405,7 @@
                                     <button
                                         onClick={() => {
                                             addColor();
-                                            setColorWidths([...colorWidths, 0.9]);
+                                            setColorWidths([...colorWidths, 0.70]);
                                             setSelectedColorIndex(colors.length);
                                         }}
                                         className="w-full bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded text-sm"
