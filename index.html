@@ -27,6 +27,7 @@
             const [spacing, setSpacing] = useState(25);
             const [lineWidth, setLineWidth] = useState(0.70);
             const [resolution, setResolution] = useState(3240);
+            const [videoResolution, setVideoResolution] = useState(1080);
             const [colors, setColors] = useState(['#6B21A8', '#FACC15', '#22C55E', '#3B82F6']);
             const [colorWidths, setColorWidths] = useState([0.70, 0.70, 0.70, 0.70]);
             const [selectedColorIndex, setSelectedColorIndex] = useState(0);
@@ -359,45 +360,54 @@
             };
             
             const startRecording = () => {
-                const canvas = canvasRef.current;
-                const stream = canvas.captureStream(30);
+                // Temporarily switch to video resolution for recording
+                const originalResolution = resolution;
+                setResolution(videoResolution);
                 
-                let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
-                
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 8000000 };
-                }
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
-                }
-                
-                const mediaRecorder = new MediaRecorder(stream, options);
-                recordedChunksRef.current = [];
-
-                mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) {
-                        recordedChunksRef.current.push(e.data);
+                setTimeout(() => {
+                    const canvas = canvasRef.current;
+                    const stream = canvas.captureStream(30);
+                    
+                    let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
+                    
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 8000000 };
                     }
-                };
+                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                        options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
+                    }
+                    
+                    const mediaRecorder = new MediaRecorder(stream, options);
+                    recordedChunksRef.current = [];
 
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `optical-art-animation-${Date.now()}.webm`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                };
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            recordedChunksRef.current.push(e.data);
+                        }
+                    };
 
-                mediaRecorder.start(100);
-                mediaRecorderRef.current = mediaRecorder;
-                setIsRecording(true);
-                setRecordingTime(0);
-                
-                if (!isAnimating) {
-                    setIsAnimating(true);
-                }
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = `optical-art-animation-${Date.now()}.webm`;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                        
+                        // Restore original resolution
+                        setResolution(originalResolution);
+                    };
+
+                    mediaRecorder.start(100);
+                    mediaRecorderRef.current = mediaRecorder;
+                    setIsRecording(true);
+                    setRecordingTime(0);
+                    
+                    if (!isAnimating) {
+                        setIsAnimating(true);
+                    }
+                }, 100);
             };
             
             const stopRecording = () => {
@@ -466,13 +476,13 @@
                             React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
                                 React.createElement('h3', { className: "font-semibold mb-2" }, 'Export'),
                                 React.createElement('div', null,
-                                    React.createElement('label', { className: "text-sm text-gray-400" }, `Resolution: ${resolution}x${resolution}`),
+                                    React.createElement('label', { className: "text-sm text-gray-400" }, 'PNG Resolution'),
                                     React.createElement('select', {
                                         value: resolution,
                                         onChange: (e) => setResolution(Number(e.target.value)),
                                         className: "w-full bg-gray-700 text-white px-3 py-2 rounded mt-1"
                                     },
-                                        React.createElement('option', { value: 1080 }, '1080x1080 (Instagram)'),
+                                        React.createElement('option', { value: 1080 }, '1080x1080'),
                                         React.createElement('option', { value: 2160 }, '2160x2160 (2K)'),
                                         React.createElement('option', { value: 3240 }, '3240x3240 (3K)'),
                                         React.createElement('option', { value: 4320 }, '4320x4320 (4K)')
@@ -486,6 +496,17 @@
                                     'Export PNG'
                                 ),
                                 React.createElement('div', { className: "border-t border-gray-700 pt-3 mt-3" },
+                                    React.createElement('label', { className: "text-sm text-gray-400 mb-2 block" }, 'Video Resolution'),
+                                    React.createElement('select', {
+                                        value: videoResolution,
+                                        onChange: (e) => setVideoResolution(Number(e.target.value)),
+                                        className: "w-full bg-gray-700 text-white px-3 py-2 rounded mb-3",
+                                        disabled: isRecording
+                                    },
+                                        React.createElement('option', { value: 720 }, '720x720 (Fast)'),
+                                        React.createElement('option', { value: 1080 }, '1080x1080 (Recommended)'),
+                                        React.createElement('option', { value: 1440 }, '1440x1440 (High Quality)')
+                                    ),
                                     !isRecording ? React.createElement('button', {
                                         onClick: startRecording,
                                         className: "w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-semibold"
