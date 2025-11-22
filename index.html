@@ -66,11 +66,20 @@
                 if (!canvas) return;
                 
                 const ctx = canvas.getContext('2d');
+                ctx.save();
+                
                 ctx.fillStyle = colors[0];
                 ctx.fillRect(0, 0, width, height);
 
                 const centerX = width / 2;
                 const centerY = height / 2;
+                
+                ctx.translate(centerX, centerY);
+                ctx.rotate((currentRotation * Math.PI) / 180);
+                ctx.translate(-centerX, -centerY);
+                
+                const animatedCenterDist = centerDistortion + Math.sin(pulsePhase) * 50;
+                const animatedEdgeDist = edgeDistortion + Math.cos(pulsePhase) * 50;
 
                 for (let i = 0; i < circles; i++) {
                     const baseRadius = (i + 1) * spacing;
@@ -103,9 +112,9 @@
                             
                             let widthMultiplier = 1;
                             const centerInfluence = 1 - normalizedDistance;
-                            widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                            widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                             const edgeInfluence = normalizedDistance;
-                            widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                            widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                             
                             ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
 
@@ -123,16 +132,15 @@
                         const y = centerY - baseRadius;
                         const y2 = centerY + baseRadius;
                         
-                        // Calculate distance from center for width modulation
                         const distFromCenter = baseRadius;
                         const maxRadius = Math.min(width, height) / 2;
                         const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
                         
                         let widthMultiplier = 1;
                         const centerInfluence = 1 - normalizedDistance;
-                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                         const edgeInfluence = normalizedDistance;
-                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                         
                         ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
@@ -152,16 +160,15 @@
                         const x = centerX - baseRadius;
                         const x2 = centerX + baseRadius;
                         
-                        // Calculate distance from center for width modulation
                         const distFromCenter = baseRadius;
                         const maxRadius = Math.min(width, height) / 2;
                         const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
                         
                         let widthMultiplier = 1;
                         const centerInfluence = 1 - normalizedDistance;
-                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                         const edgeInfluence = normalizedDistance;
-                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                         
                         ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
@@ -178,16 +185,15 @@
                     }
 
                     if (shapes.diagonalLines) {
-                        // Calculate distance from center for width modulation
                         const distFromCenter = baseRadius;
                         const maxRadius = Math.min(width, height) / 2;
                         const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
                         
                         let widthMultiplier = 1;
                         const centerInfluence = 1 - normalizedDistance;
-                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                         const edgeInfluence = normalizedDistance;
-                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                         
                         ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         
@@ -215,16 +221,15 @@
                     if (shapes.squares) {
                         const size = baseRadius * 2;
                         
-                        // Calculate distance from center for width modulation
                         const distFromCenter = baseRadius;
                         const maxRadius = Math.min(width, height) / 2;
                         const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
                         
                         let widthMultiplier = 1;
                         const centerInfluence = 1 - normalizedDistance;
-                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                         const edgeInfluence = normalizedDistance;
-                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                         
                         ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
@@ -235,16 +240,15 @@
                     if (shapes.triangles) {
                         const triHeight = baseRadius * Math.sqrt(3);
                         
-                        // Calculate distance from center for width modulation
                         const distFromCenter = baseRadius;
                         const maxRadius = Math.min(width, height) / 2;
                         const normalizedDistance = Math.min(distFromCenter / maxRadius, 1);
                         
                         let widthMultiplier = 1;
                         const centerInfluence = 1 - normalizedDistance;
-                        widthMultiplier += (centerDistortion / 100) * centerInfluence;
+                        widthMultiplier += (isAnimating ? animatedCenterDist : centerDistortion) / 100 * centerInfluence;
                         const edgeInfluence = normalizedDistance;
-                        widthMultiplier += (edgeDistortion / 100) * edgeInfluence;
+                        widthMultiplier += (isAnimating ? animatedEdgeDist : edgeDistortion) / 100 * edgeInfluence;
                         
                         ctx.lineWidth = Math.max(0.1, baseWidth * widthMultiplier);
                         ctx.beginPath();
@@ -255,11 +259,44 @@
                         ctx.stroke();
                     }
                 }
+                
+                ctx.restore();
             };
 
             useEffect(() => {
                 draw();
-            }, [circles, spacing, colors, colorWidths, resolution, widthModulations, centerDistortion, edgeDistortion, shapes]);
+            }, [circles, spacing, colors, colorWidths, resolution, widthModulations, centerDistortion, edgeDistortion, shapes, currentRotation, pulsePhase, isAnimating]);
+            
+            useEffect(() => {
+                if (isAnimating) {
+                    const animate = () => {
+                        setCurrentRotation(prev => (prev + rotationSpeed) % 360);
+                        setPulsePhase(prev => prev + (pulseSpeed * 0.05));
+                        animationFrameRef.current = requestAnimationFrame(animate);
+                    };
+                    animate();
+                } else {
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                }
+                
+                return () => {
+                    if (animationFrameRef.current) {
+                        cancelAnimationFrame(animationFrameRef.current);
+                    }
+                };
+            }, [isAnimating, rotationSpeed, pulseSpeed]);
+            
+            useEffect(() => {
+                let interval;
+                if (isRecording) {
+                    interval = setInterval(() => {
+                        setRecordingTime(prev => prev + 1);
+                    }, 1000);
+                }
+                return () => clearInterval(interval);
+            }, [isRecording]);
 
             const handleCanvasMouseDown = (e) => {
                 setIsDrawing(true);
@@ -320,6 +357,55 @@
                     alert('Export failed. Try reducing the resolution.');
                 }
             };
+            
+            const startRecording = () => {
+                const canvas = canvasRef.current;
+                const stream = canvas.captureStream(30);
+                
+                let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
+                
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 8000000 };
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
+                }
+                
+                const mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunksRef.current = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunksRef.current.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `optical-art-animation-${Date.now()}.webm`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                mediaRecorder.start(100);
+                mediaRecorderRef.current = mediaRecorder;
+                setIsRecording(true);
+                setRecordingTime(0);
+                
+                if (!isAnimating) {
+                    setIsAnimating(true);
+                }
+            };
+            
+            const stopRecording = () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    mediaRecorderRef.current.stop();
+                    setIsRecording(false);
+                }
+            };
 
             const clearWidthMods = () => {
                 setWidthModulations([]);
@@ -343,6 +429,11 @@
                     triangles: false,
                     squares: false
                 });
+                setIsAnimating(false);
+                setCurrentRotation(0);
+                setPulsePhase(0);
+                setRotationSpeed(1);
+                setPulseSpeed(1);
             };
 
             const addColor = () => {
@@ -393,7 +484,52 @@
                                 },
                                     React.createElement(Download, { size: 18 }),
                                     'Export PNG'
+                                ),
+                                React.createElement('div', { className: "border-t border-gray-700 pt-3 mt-3" },
+                                    !isRecording ? React.createElement('button', {
+                                        onClick: startRecording,
+                                        className: "w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm font-semibold"
+                                    }, '🎥 Record Video') : React.createElement('button', {
+                                        onClick: stopRecording,
+                                        className: "w-full bg-red-800 hover:bg-red-900 px-4 py-2 rounded text-sm font-semibold animate-pulse"
+                                    }, `⏹ Stop (${recordingTime}s)`)
                                 )
+                            ),
+                            React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
+                                React.createElement('h3', { className: "font-semibold mb-2" }, 'Animation'),
+                                React.createElement('button', {
+                                    onClick: () => setIsAnimating(!isAnimating),
+                                    className: `w-full px-4 py-2 rounded font-semibold ${
+                                        isAnimating 
+                                            ? 'bg-green-600 hover:bg-green-700' 
+                                            : 'bg-gray-700 hover:bg-gray-600'
+                                    }`
+                                }, isAnimating ? '⏸ Pause' : '▶ Play'),
+                                React.createElement('div', null,
+                                    React.createElement('label', { className: "text-sm text-gray-400" }, `Rotation: ${rotationSpeed.toFixed(1)}`),
+                                    React.createElement('input', {
+                                        type: "range",
+                                        min: "0",
+                                        max: "5",
+                                        step: "0.1",
+                                        value: rotationSpeed,
+                                        onChange: (e) => setRotationSpeed(Number(e.target.value)),
+                                        className: "w-full"
+                                    })
+                                ),
+                                React.createElement('div', null,
+                                    React.createElement('label', { className: "text-sm text-gray-400" }, `Pulse: ${pulseSpeed.toFixed(1)}`),
+                                    React.createElement('input', {
+                                        type: "range",
+                                        min: "0",
+                                        max: "5",
+                                        step: "0.1",
+                                        value: pulseSpeed,
+                                        onChange: (e) => setPulseSpeed(Number(e.target.value)),
+                                        className: "w-full"
+                                    })
+                                ),
+                                React.createElement('p', { className: "text-xs text-gray-500" }, 'Set to 0 to disable')
                             ),
                             React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
                                 React.createElement('h3', { className: "font-semibold mb-2" }, 'Shape Options'),
@@ -425,7 +561,7 @@
                             React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
                                 React.createElement('h3', { className: "font-semibold mb-2" }, 'Pattern Settings'),
                                 React.createElement('div', null,
-                                    React.createElement('label', { className: "text-sm text-gray-400" }, `Number of Layers: ${circles}`),
+                                    React.createElement('label', { className: "text-sm text-gray-400" }, `Layers: ${circles}`),
                                     React.createElement('input', {
                                         type: "range",
                                         min: "10",
@@ -461,8 +597,7 @@
                                             setColorWidths(colors.map(() => newWidth));
                                         },
                                         className: "w-full"
-                                    }),
-                                    React.createElement('p', { className: "text-xs text-gray-500 mt-1" }, 'Adjusts all colors at once')
+                                    })
                                 )
                             ),
                             React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
@@ -476,8 +611,7 @@
                                         value: centerDistortion,
                                         onChange: (e) => setCenterDistortion(Number(e.target.value)),
                                         className: "w-full"
-                                    }),
-                                    React.createElement('p', { className: "text-xs text-gray-500 mt-1" }, 'Adjusts line width from center outward')
+                                    })
                                 ),
                                 React.createElement('div', null,
                                     React.createElement('label', { className: "text-sm text-gray-400" }, `Edge → In: ${edgeDistortion}`),
@@ -488,16 +622,8 @@
                                         value: edgeDistortion,
                                         onChange: (e) => setEdgeDistortion(Number(e.target.value)),
                                         className: "w-full"
-                                    }),
-                                    React.createElement('p', { className: "text-xs text-gray-500 mt-1" }, 'Adjusts line width from edge inward')
-                                ),
-                                React.createElement('button', {
-                                    onClick: () => {
-                                        setCenterDistortion(0);
-                                        setEdgeDistortion(0);
-                                    },
-                                    className: "w-full bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm"
-                                }, 'Reset Radial Width')
+                                    })
+                                )
                             ),
                             React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
                                 React.createElement('h3', { className: "font-semibold mb-2" }, 'Colors'),
@@ -569,16 +695,11 @@
                                 }, '+ Add Color')
                             ),
                             React.createElement('div', { className: "bg-gray-800 p-4 rounded-lg space-y-3" },
-                                React.createElement('h3', { className: "font-semibold mb-2" }, 'Effects'),
-                                React.createElement('div', { className: "space-y-2" },
-                                    React.createElement('div', { className: "flex items-center justify-between text-sm" },
-                                        React.createElement('span', { className: "text-gray-400" }, `Width Mods: ${widthModulations.length}`),
-                                        React.createElement('button', {
-                                            onClick: clearWidthMods,
-                                            className: "bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-xs"
-                                        }, 'Clear')
-                                    )
-                                ),
+                                React.createElement('h3', { className: "font-semibold mb-2" }, 'Actions'),
+                                widthModulations.length > 0 && React.createElement('button', {
+                                    onClick: clearWidthMods,
+                                    className: "w-full bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-sm mb-2"
+                                }, `Clear Width Mods (${widthModulations.length})`),
                                 React.createElement('button', {
                                     onClick: resetAll,
                                     className: "w-full bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded"
