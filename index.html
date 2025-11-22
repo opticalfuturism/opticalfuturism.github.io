@@ -360,54 +360,45 @@
             };
             
             const startRecording = () => {
-                // Temporarily switch to video resolution for recording
-                const originalResolution = resolution;
-                setResolution(videoResolution);
+                const canvas = canvasRef.current;
+                const stream = canvas.captureStream(30);
                 
-                setTimeout(() => {
-                    const canvas = canvasRef.current;
-                    const stream = canvas.captureStream(30);
-                    
-                    let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
-                    
-                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                        options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 8000000 };
-                    }
-                    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                        options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
-                    }
-                    
-                    const mediaRecorder = new MediaRecorder(stream, options);
-                    recordedChunksRef.current = [];
+                let options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 8000000 };
+                
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 8000000 };
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/webm', videoBitsPerSecond: 8000000 };
+                }
+                
+                const mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunksRef.current = [];
 
-                    mediaRecorder.ondataavailable = (e) => {
-                        if (e.data.size > 0) {
-                            recordedChunksRef.current.push(e.data);
-                        }
-                    };
-
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = `optical-art-animation-${Date.now()}.webm`;
-                        link.click();
-                        URL.revokeObjectURL(url);
-                        
-                        // Restore original resolution
-                        setResolution(originalResolution);
-                    };
-
-                    mediaRecorder.start(100);
-                    mediaRecorderRef.current = mediaRecorder;
-                    setIsRecording(true);
-                    setRecordingTime(0);
-                    
-                    if (!isAnimating) {
-                        setIsAnimating(true);
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunksRef.current.push(e.data);
                     }
-                }, 100);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `optical-art-animation-${Date.now()}.webm`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                mediaRecorder.start(100);
+                mediaRecorderRef.current = mediaRecorder;
+                setIsRecording(true);
+                setRecordingTime(0);
+                
+                if (!isAnimating) {
+                    setIsAnimating(true);
+                }
             };
             
             const stopRecording = () => {
